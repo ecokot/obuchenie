@@ -1,0 +1,100 @@
+тут будет план который мы составим и я буду отмечать выполненные пункты знаком + перед пунктом
+Наш учебный маршрут
+Предлагаю такой порядок:
+Этап 1 — Python фундамент
++ Переменные и типы
++ Условия
++ Циклы
++ list, dict,
++ tuple, set
++ Функции
++ args, **kwargs
++ return
++ области видимости
++ исключения try / except
++ модули и import
++ typing
+Этап 2 — ООП
++ класс и объект
++ self
++ __init__
++ методы
++ атрибуты
++ наследование
++ композиция
++ абстракции
++ Dependency Injection
++ Protocol
++ super()
++ переопределение методов
++ duck typing
+dataclass
+специальные методы
++ протоколы и интерфейсы
+Этап 3 — Python для настоящих приложений
++структура проекта
++пакеты
+конфигурация
+логирование
+.env
+управление зависимостями
+тестирование
+обработка ошибок
+Этап 4 — Async Python
+что такое синхронный код
+что такое асинхронный код
+async def
+await
+coroutine
+event loop
+asyncio
+async context manager
+async generator
+конкурентное выполнение
+Этап 5 — SQL
+таблицы
+строки
+столбцы
+primary key
+foreign key
+SELECT
+INSERT
+UPDATE
+DELETE
+JOIN
+связи между таблицами
+транзакции
+Этап 6 — SQLAlchemy 2.x
+Engine
+Session
+AsyncSession
+DeclarativeBase
+модели
+relationships
+select()
+repository pattern
+Этап 7 — FastAPI
+HTTP
+request / response
+маршруты
+path/query parameters
+Pydantic
+dependency injection
+async endpoints
+обработка ошибок
+документация OpenAPI
+Этап 8 — Архитектура MiniPlatform
+И только здесь начинаем собирать всё вместе:
+App
+Config
+Logger
+PluginManager
+lifecycle приложения
+extensions
+конфигурация плагинов
+БД
+Repository
+Web plugin
+другие плагины
+взаимодействие плагинов с ядром
+Это хорошо соответствует уже имеющейся архитектуре проекта: ядро специально отделено от FastAPI/Uvicorn и других конкретных технологий.
