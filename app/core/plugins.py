@@ -2,7 +2,7 @@ from typing import Protocol
 from .app import App
 
 class Plugin(Protocol):
-    def register(self, app: App)-> None:
+    def register(self, app: App) -> None:
         ...
 
 
