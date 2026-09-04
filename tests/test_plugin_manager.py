@@ -5,15 +5,34 @@ from app.core.plugins import PluginManager
 class FakePlugin:
     def __init__(self):
         self.registered = False
+    def register(self, app):
+        self.registered = True
+
+class BrokenPlugin:
+    def __init__(self):
+        self.registered = False
 
     def register(self, app):
-        self.registered = True  # ТВОЙ КОД: что изменить, чтобы тест заметил вызов?
+        raise ValueError("This plugin is broken")
+
+
 
 def test_load_plugins_calls_register():
     config = Config()
     app = App(config)
     plugin_manager = PluginManager([FakePlugin()], app)
     plugin_manager.load_plugins()
-    assert plugin_manager.plugins[0].registered == True
-    ...  # ТВОЙ КОД: создай App, FakePlugin, PluginManager,
-    # вызови load_plugins() и проверь assert, что register был вызван
+    assert plugin_manager.plugins[0].registered
+
+
+
+
+def test_load_plugins_continues_after_error():
+    config = Config()
+    app = App(config)
+    plugin_manager = PluginManager([BrokenPlugin(), FakePlugin()], app)
+    plugin_manager.load_plugins()
+    print(plugin_manager.plugins[0].registered)
+    print(plugin_manager.plugins[1].registered)
+    assert True if (not plugin_manager.plugins[0].registered) and plugin_manager.plugins[1].registered else False
+
