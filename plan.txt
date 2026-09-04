@@ -47,8 +47,8 @@
 + coroutine
 + event loop
 + asyncio
-async context manager
-async generator
++ async context manager
++ async generator
 + конкурентное выполнение
 Этап 5 — SQL
 таблицы
