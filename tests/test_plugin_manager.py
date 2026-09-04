@@ -32,7 +32,5 @@ def test_load_plugins_continues_after_error():
     app = App(config)
     plugin_manager = PluginManager([BrokenPlugin(), FakePlugin()], app)
     plugin_manager.load_plugins()
-    print(plugin_manager.plugins[0].registered)
-    print(plugin_manager.plugins[1].registered)
-    assert True if (not plugin_manager.plugins[0].registered) and plugin_manager.plugins[1].registered else False
-
+    assert not plugin_manager.plugins[0].registered
+    assert plugin_manager.plugins[1].registered

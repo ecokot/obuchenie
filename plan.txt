@@ -38,18 +38,18 @@
 + .env
 + управление зависимостями
 + тестирование
-обработка ошибок
++ обработка ошибок
 Этап 4 — Async Python
-что такое синхронный код
-что такое асинхронный код
-async def
-await
-coroutine
-event loop
-asyncio
++ что такое синхронный код
++ что такое асинхронный код
++ async def
++ await
++ coroutine
++ event loop
++ asyncio
 async context manager
 async generator
-конкурентное выполнение
++ конкурентное выполнение
 Этап 5 — SQL
 таблицы
 строки

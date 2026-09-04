@@ -15,10 +15,8 @@ class PluginManager:
         self.app = app
 
     def load_plugins(self):
-
-            for plugin in self.plugins:
-                try:
-                    plugin.register(self.app)
-                except Exception as e:
-                    logger.error(f"Error loading plugins: {plugin.__class__.__name__} {e}")
-                    continue
+        for plugin in self.plugins:
+            try:
+                plugin.register(self.app)
+            except Exception as e:
+                logger.error(f"Error loading plugins: {plugin.__class__.__name__} {e}")
