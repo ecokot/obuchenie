@@ -51,18 +51,18 @@
 + async generator
 + конкурентное выполнение
 Этап 5 — SQL
-таблицы
-строки
-столбцы
-primary key
-foreign key
-SELECT
-INSERT
-UPDATE
-DELETE
++ таблицы
++ строки
++ столбцы
++ primary key
++ foreign key
++ SELECT
++ INSERT
++ UPDATE
++ DELETE
 JOIN
-связи между таблицами
-транзакции
++ связи между таблицами
++ транзакции
 Этап 6 — SQLAlchemy 2.x
 Engine
 Session
