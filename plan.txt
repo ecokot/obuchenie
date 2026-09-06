@@ -60,7 +60,7 @@
 + INSERT
 + UPDATE
 + DELETE
-JOIN
++ JOIN
 + связи между таблицами
 + транзакции
 Этап 6 — SQLAlchemy 2.x
