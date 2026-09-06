@@ -64,8 +64,8 @@
 + связи между таблицами
 + транзакции
 Этап 6 — SQLAlchemy 2.x
-Engine
-Session
++ Engine
++ Session
 AsyncSession
 DeclarativeBase
 модели
