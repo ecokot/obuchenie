@@ -47,3 +47,5 @@ htmlcov/
 
 # Build artifacts
 *.whl
+.gigaide/
+*.iml
