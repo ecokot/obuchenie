@@ -1,31 +1,20 @@
-from sqlalchemy import create_engine, String, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
+from sqlalchemy import String, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     pass
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__  = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(100))
     age: Mapped[int]
+    posts: Mapped[list["Post"]] = relationship(back_populates="user")
 
-engine = create_engine("sqlite:///demo.db", echo=True)
-
-Base.metadata.create_all(engine)
-data = (
-    ("Alice", 25),
-    ("Bob", 30)
-)
-with Session(engine) as session:
-    for name, age in data:
-        user = User(name=name, age=age)
-        session.add(user)
-    session.commit()
-
-with Session(engine) as session:
-    stmt = select(User).where(User.age > 25)
-    users = session.scalars(stmt).all() #
-    for user in users:
-        print(f"Found: {user.name}, Age: {user.age}")
+class Post(Base):
+    __tablename__ = "posts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship(back_populates="posts")
