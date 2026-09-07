@@ -70,7 +70,7 @@
 + DeclarativeBase
 + модели
 relationships
-select()
++ select()
 repository pattern
 Этап 7 — FastAPI
 HTTP
