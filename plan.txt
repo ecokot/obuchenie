@@ -66,9 +66,9 @@
 Этап 6 — SQLAlchemy 2.x
 + Engine
 + Session
-AsyncSession
-DeclarativeBase
-модели
++ AsyncSession
++ DeclarativeBase
++ модели
 relationships
 select()
 repository pattern
