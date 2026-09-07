@@ -69,9 +69,9 @@
 + AsyncSession
 + DeclarativeBase
 + модели
-relationships
++ relationships
 + select()
-repository pattern
++ repository pattern
 Этап 7 — FastAPI
 HTTP
 request / response
