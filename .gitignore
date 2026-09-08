@@ -48,4 +48,12 @@ htmlcov/
 # Build artifacts
 *.whl
 .gigaide/
+.gigacode/
 *.iml
+
+# Local databases
+*.db
+*.sqlite3
+
+# Local tool config
+opencode.json

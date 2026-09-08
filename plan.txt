@@ -83,7 +83,7 @@
 + обработка ошибок
 + status codes
 + middleware
-документация OpenAPI
++ документация OpenAPI
 Этап 8 — Архитектура MiniPlatform
 И только здесь начинаем собирать всё вместе:
 App
