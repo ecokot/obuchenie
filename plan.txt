@@ -79,8 +79,10 @@
 + path/query parameters
 + Pydantic
 + dependency injection
-async endpoints
-обработка ошибок
++ async endpoints
++ обработка ошибок
++ status codes
++ middleware
 документация OpenAPI
 Этап 8 — Архитектура MiniPlatform
 И только здесь начинаем собирать всё вместе:
