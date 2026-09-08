@@ -73,12 +73,12 @@
 + select()
 + repository pattern
 Этап 7 — FastAPI
-HTTP
-request / response
-маршруты
-path/query parameters
-Pydantic
-dependency injection
++ HTTP
++ request / response
++ маршруты
++ path/query parameters
++ Pydantic
++ dependency injection
 async endpoints
 обработка ошибок
 документация OpenAPI

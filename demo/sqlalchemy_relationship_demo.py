@@ -18,7 +18,7 @@ class Post(Base):
     title: Mapped[str] = mapped_column(String(100))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship(back_populates="posts")
-engine = create_engine("sqlite:///demo.db", echo=True)\
+engine = create_engine("sqlite:///demo.db", echo=True)
 
 Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)
