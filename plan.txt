@@ -90,7 +90,7 @@
 + Config
 + Logger
 + PluginManager
-lifecycle приложения
++ lifecycle приложения
 extensions
 конфигурация плагинов
 БД
