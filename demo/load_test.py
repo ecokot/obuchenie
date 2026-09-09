@@ -7,7 +7,7 @@ def fetch(url):
     """Один поток делает один запрос"""
     urllib.request.urlopen(url)
 
-def main():
+def main_test():
     url = sys.argv[1]  # URL из командной строки
     n_requests = 10
 
@@ -20,4 +20,4 @@ def main():
     print(f"Total time: {elapsed:.2f}s")
 
 if __name__ == "__main__":
-    main()
+    main_test()

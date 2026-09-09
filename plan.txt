@@ -86,10 +86,10 @@
 + документация OpenAPI
 Этап 8 — Архитектура MiniPlatform
 И только здесь начинаем собирать всё вместе:
-App
-Config
-Logger
-PluginManager
++ App
++ Config
++ Logger
++ PluginManager
 lifecycle приложения
 extensions
 конфигурация плагинов
