@@ -1,6 +1,5 @@
 from app.core import App, Config
 from app.core.plugins import PluginManager
-from plugins.auth import AuthPlugin
 from dotenv import load_dotenv
 import logging
 import os
@@ -15,6 +14,6 @@ else:
 
 
 app = App(config)
-plugin_manager = PluginManager([AuthPlugin()], app)
-
+plugin_manager = PluginManager(app)
+app.set_plugin_manager(plugin_manager)
 plugin_manager.load_plugins()

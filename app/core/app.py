@@ -31,3 +31,9 @@ class App:
         if self.plugin_manager is None:
             raise RuntimeError("PluginManager not set")
         self.plugin_manager.shutdown()
+
+    def register_extension(self, key: str, value) -> None:
+        if key in self.extensions:
+            raise RuntimeError(f"Extension {key} already registered")
+        self.extensions[key] = value
+
