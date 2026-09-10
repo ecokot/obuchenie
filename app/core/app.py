@@ -1,3 +1,4 @@
+from typing import Any
 from .config import Config
 import logging
 
@@ -21,6 +22,10 @@ class App:
             self.plugin_manager = pm
         else:
             raise RuntimeError("PluginManager already set")
+    def get_get_extension(self, key: str) -> Any:
+        if key not in self.extensions:
+            raise RuntimeError(f"Extension {key} not registered")
+        return self.extensions[key]
 
     def start(self):
         if self.plugin_manager is None:
