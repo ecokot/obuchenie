@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-
 @dataclass
 class DBConfig:
     connection_string: str
@@ -25,7 +24,9 @@ class DBPlugin:
         app.register_extension('db_session_factory', sm)
 
     def startup(self):
-        ...
+        if self.config.create_tables:
+            from .models import Base
+            Base.metadata.create_all(self.engine)
 
     def shutdown(self):
         if self.engine is not None:

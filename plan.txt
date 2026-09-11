@@ -93,7 +93,7 @@
 + lifecycle приложения
 + extensions
 + конфигурация плагинов
-БД
++ БД
 Repository
 Web plugin
 другие плагины
