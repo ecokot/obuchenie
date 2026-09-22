@@ -1,0 +1,632 @@
+============app/__init__.py========
+
+===========конец app/__init__.py==========
+============app/core/__init__.py========
+from .app import App
+from .config import Config
+===========конец app/core/__init__.py==========
+============app/core/app.py========
+from typing import Any
+from .config import Config
+import logging
+
+logger = logging.getLogger(__name__)
+
+class App:
+    def __init__(self, config: Config):
+        self.config = config
+        self.extensions = {}
+        self.plugins = []
+        self.plugin_manager = None
+
+    def add_plugin(self, plugin):
+        if plugin not in self.plugins:
+            self.plugins.append(plugin)
+        else:
+            logger.warning(f"Plugin {plugin.__class__.__name__} already added. Skipping...")
+
+    def set_plugin_manager(self, pm):
+        if self.plugin_manager is None:
+            self.plugin_manager = pm
+        else:
+            raise RuntimeError("PluginManager already set")
+    def get_extension(self, key: str) -> Any:
+        if key not in self.extensions:
+            raise RuntimeError(f"Extension {key} not registered")
+        return self.extensions[key]
+
+    def start(self):
+        if self.plugin_manager is None:
+            raise RuntimeError("PluginManager not set")
+        self.plugin_manager.startup()
+
+    def stop(self):
+        if self.plugin_manager is None:
+            raise RuntimeError("PluginManager not set")
+        self.plugin_manager.shutdown()
+
+    def register_extension(self, key: str, value) -> None:
+        if key in self.extensions:
+            raise RuntimeError(f"Extension {key} already registered")
+        self.extensions[key] = value
+===========конец app/core/app.py==========
+============app/core/config.py========
+from dataclasses import dataclass
+
+@dataclass
+class Config:
+    app_name: str = "MiniPlatform"
+    debug: bool = False===========конец app/core/config.py==========
+============app/core/plugins.py========
+import logging
+from typing import Protocol
+from .app import App
+
+logger = logging.getLogger(__name__)
+
+class Plugin(Protocol):
+    def register(self, app: App) -> None:
+        ...
+
+    def startup(self) -> None:
+        ...
+
+    def shutdown(self) -> None:
+        ...
+
+
+class PluginManager:
+    def __init__(self, app: App) -> None:
+        self.app = app
+
+    def load_plugins(self):
+        for plugin in self.app.plugins:
+            try:
+                plugin.register(self.app)
+            except Exception as e:
+                logger.error(f"Error loading plugins: {plugin.__class__.__name__} {e}")
+
+    def startup(self):
+        for plugin in self.app.plugins:
+            try:
+                plugin.startup()
+            except Exception as e:
+                logger.error(f"Error starting up plugins: {e}")
+
+    def shutdown(self):
+        for plugin in self.app.plugins:
+            try:
+                plugin.shutdown()
+            except Exception as e:
+                logger.error(f"Error shutting down plugins: {e}")===========конец app/core/plugins.py==========
+============main.py========
+from app.core import App, Config
+from app.core.plugins import PluginManager
+from dotenv import load_dotenv
+import logging
+import os
+
+load_dotenv()
+config = Config(app_name=os.getenv("APP_NAME", "MiniPlatform"), debug=os.getenv("DEBUG", "False").lower() == "true")
+
+if config.debug:
+    logging.basicConfig(level=logging.DEBUG, format="%(levelname)s - %(name)s - %(message)s")
+else:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(name)s - %(message)s")
+
+
+app = App(config)
+plugin_manager = PluginManager(app)
+app.set_plugin_manager(plugin_manager)
+plugin_manager.load_plugins()
+===========конец main.py==========
+============requirements.txt========
+python-dotenv>=1.2.3
+SQLAlchemy~=2.0.52
+fastapi>=0.115.0
+pydantic>=2.0.0
+aiosqlite>=0.20.0
+uvicorn>=0.30.0
+pytest>=8.0.0
+greenlet>=3.0.0
+===========конец requirements.txt==========
+============plugins/__init__.py========
+
+===========конец plugins/__init__.py==========
+============plugins/auth/__init__.py========
+from .plugin import AuthPlugin
+===========конец plugins/auth/__init__.py==========
+============plugins/auth/plugin.py========
+from app.core import App
+import logging
+
+logger = logging.getLogger(__name__)
+
+class AuthPlugin:
+    def register(self, app: App) -> None:
+        logger.info(f"AuthPlugin подключен в {app.config.app_name}")
+===========конец plugins/auth/plugin.py==========
+============plugins/db_plugin/__init__.py========
+
+===========конец plugins/db_plugin/__init__.py==========
+============plugins/db_plugin/models.py========
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String
+from datetime import datetime, timezone
+
+class Base(DeclarativeBase):
+    ...
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50),unique=True)
+    password_hash: Mapped[str] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))===========конец plugins/db_plugin/models.py==========
+============plugins/db_plugin/plugin.py========
+from dataclasses import dataclass
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+@dataclass
+class DBConfig:
+    connection_string: str
+    create_tables: bool = False
+    echo: bool = False
+
+
+class DBPlugin:
+    def __init__(self, config: DBConfig):
+        self.config = config
+        self.app = None
+        self.engine = None
+
+    def register(self, app):
+        if self.app is not None:
+            raise RuntimeError("Plugin is already registered with an app")
+        self.app = app
+        self.engine = create_engine(self.config.connection_string, echo=self.config.echo)
+        sm = sessionmaker(bind=self.engine)
+        app.register_extension('db_session_factory', sm)
+
+    def startup(self):
+        if self.config.create_tables:
+            from .models import Base
+            Base.metadata.create_all(self.engine)
+
+    def shutdown(self):
+        if self.engine is not None:
+            self.engine.dispose()
+===========конец plugins/db_plugin/plugin.py==========
+============plugins/db_plugin/repository.py========
+from .models import User
+from sqlalchemy import select
+
+class UserRepository:
+    def __init__(self, session_factory):
+        self.session_factory = session_factory
+
+    def create_user(self, username, password_hash):
+        with self.session_factory() as session:
+            user = User(username=username, password_hash=password_hash)
+            session.add(user)
+            session.commit()
+            return user
+
+    def find_by_username(self, username) -> User | None:
+        with self.session_factory() as session:
+            stmt = select(User).where(User.username == username)
+            result = session.execute(stmt)
+            return result.scalar_one_or_none()
+===========конец plugins/db_plugin/repository.py==========
+============tests/test_app.py========
+# tests/test_app.py
+from app.core import App, Config
+
+def test_app_stores_config():
+    config = Config(app_name="Test")  # 1. создали объект
+    app = App(config)                 # 2. действие — передали config в App
+    assert app.config is config       # 3. проверка: App сохранил ТОТ ЖЕ объект
+
+
+
+===========конец tests/test_app.py==========
+============tests/test_plugin_manager.py========
+# tests/test_plugin_manager.py
+from app.core import App, Config
+from app.core.plugins import PluginManager
+
+class FakePlugin:
+    def __init__(self):
+        self.registered = False
+    def register(self, app):
+        self.registered = True
+
+class BrokenPlugin:
+    def __init__(self):
+        self.registered = False
+
+    def register(self, app):
+        raise ValueError("This plugin is broken")
+
+
+
+
+def test_load_plugins_calls_register():
+    config = Config()
+    app = App(config)
+    plugin_manager = PluginManager([FakePlugin()], app)
+    plugin_manager.load_plugins()
+    assert plugin_manager.plugins[0].registered
+
+
+
+
+
+def test_load_plugins_continues_after_error():
+    config = Config()
+    app = App(config)
+    plugin_manager = PluginManager([BrokenPlugin(), FakePlugin()], app)
+    plugin_manager.load_plugins()
+    assert not plugin_manager.plugins[0].registered
+    assert plugin_manager.plugins[1].registered===========конец tests/test_plugin_manager.py==========
+============demo/async_demo.py========
+import asyncio
+
+
+async def task(name):
+    print(f"{name}: start")
+    await asyncio.sleep(1)
+    print(f"{name}: end")
+
+
+# async def main():
+#     print("Sequential:")
+#     await task("A")
+#     await task("B")
+#
+#     print("---")
+#     print("Gather (parallel):")
+#     await asyncio.gather(task("A"), task("B"))
+#
+#     print("---")
+#     print("Create_task (parallel):")
+#     t1 = asyncio.create_task(task("A"))
+#     t2 = asyncio.create_task(task("B"))
+#     await t1
+#     await t2
+#
+#
+# asyncio.run(main())
+
+async def main():
+    print("Start:")
+    t1 = asyncio.create_task(task("A"))
+    t2 = asyncio.create_task(task("B"))
+    await asyncio.sleep(1.5)
+
+asyncio.run(main())
+===========конец demo/async_demo.py==========
+============demo/cm_demo.py========
+import asyncio
+
+async def ticker():
+    for i in [0,1,2]:
+        yield i
+        await asyncio.sleep(0.5)
+
+async def main():
+    async for i in ticker():
+        print(i)
+
+asyncio.run(main())
+
+
+===========конец demo/cm_demo.py==========
+============demo/db_demo.py========
+import sqlite3
+from datetime import datetime
+
+conn = sqlite3.connect(":memory:")
+cursor = conn.cursor()
+cursor.execute('PRAGMA foreign_keys = ON')
+cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    age INTEGER,
+    created_at TEXT NOT NULL
+    )''')
+conn.commit()
+
+cursor.execute('DROP TABLE IF EXISTS posts')
+cursor.execute('''CREATE TABLE posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)''')
+conn.commit()
+
+now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+data = [
+    ('Alice', 25, now),
+    ('Bob', 30, now),
+    ('Charlie', 28, now),
+    ('Alice', 26, now)
+]
+cursor.executemany('''INSERT INTO users (name, age, created_at) VALUES (?, ?, ?)''', data)
+conn.commit()
+
+
+print("--- INSERT POST")
+try:
+    cursor.executemany('''INSERT INTO posts (title, user_id) VALUES (?, ?)''', (('Post 1', 999),))
+    conn.commit()
+except sqlite3.IntegrityError as e:
+    print("Ошибка:", e.args[0])
+
+cursor.execute('''DELETE FROM users WHERE id = 1''')
+conn.commit()
+print("---")
+data = [
+    ('Post 2', 2),
+    ('Post 3', 2),
+    ('Post 4', 4)
+]
+cursor.executemany('''INSERT INTO posts (title, user_id) VALUES (?, ?)''', data)
+conn.commit()
+print("--- SELECT POSTS")
+cursor.execute('''
+    SELECT name
+    FROM users
+    WHERE id NOT IN (SELECT user_id FROM posts)
+    ''')
+for row in cursor.fetchall():
+    print(row)
+
+
+conn.close()===========конец demo/db_demo.py==========
+============demo/fastapi_demo.py========
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
+
+class PostCreate(BaseModel):
+    title: str
+
+
+app = FastAPI()
+
+POSTS = {1: "Post 1", 2: "Post 2"}
+def get_storage():
+    print("setup")
+    yield POSTS
+    print("teardown")
+
+@app.get('/posts')
+def get_posts(db: dict = Depends(get_storage)):
+    return list(db.values())
+
+@app.get('/posts/{post_id}')
+def get_post(post_id: int, db: dict = Depends(get_storage)):
+     if post_id not in db:
+         raise HTTPException(status_code=404, detail="Post not found")
+     else:
+         return {"id": post_id, "title": db.get(post_id, "Unknown")}
+
+@app.post("/posts")
+def create_post(post: PostCreate):
+    new_id = max(POSTS.keys()) + 1 if POSTS else 1
+    POSTS[new_id] = post.title
+    return {"id": new_id, "title": post.title}
+
+import time
+import asyncio
+
+@app.get("/sync-sleep")
+def sync_sleep():
+    time.sleep(2)
+    return {"message": "sync done"}
+
+@app.get("/async-sleep")
+async def async_sleep():
+    await asyncio.sleep(2)
+    return {"message": "async done"}
+
+@app.get("/async-bad")
+async def async_bad():
+    time.sleep(2)  # блокирует event loop!
+    return {"message": "async bad done"}
+
+@app.middleware("http")
+async def log_request_time(request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed = time.perf_counter() - start
+    print(f"{request.method} {request.url.path} took {elapsed:.3f}s")
+    return response===========конец demo/fastapi_demo.py==========
+============demo/load_test.py========
+import sys
+import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+def fetch(url):
+    """Один поток делает один запрос"""
+    urllib.request.urlopen(url)
+
+def main_test():
+    url = sys.argv[1]  # URL из командной строки
+    n_requests = 10
+
+    start = time.perf_counter()
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        list(pool.map(fetch, [url] * n_requests))
+
+    elapsed = time.perf_counter() - start
+    print(f"Total time: {elapsed:.2f}s")
+
+if __name__ == "__main__":
+    main_test()
+===========конец demo/load_test.py==========
+============demo/repository_demo.py========
+from sqlalchemy.orm import Session
+from sqlalchemy import select, delete, create_engine
+from sqlalchemy_model_demo import User, Base
+
+class UserRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create_user(self, name, age) -> User:
+        user = User(name=name, age=age)
+        self.session.add(user)
+        self.session.commit()
+        return user
+
+    def get_by_id(self, id: int) -> User | None:
+        return self.session.execute(select(User).where(User.id == id)).scalar_one_or_none()
+
+    def get_by_name(self, name: str) -> User | None:
+        return self.session.execute(select(User).where(User.name == name)).scalar_one_or_none()
+
+    def delete(self, id: int) -> bool:
+        res = self.session.execute(delete(User).where(User.id == id)).rowcount
+        self.session.commit()
+        return res > 0
+
+
+
+
+
+engine = create_engine("sqlite:///demo.db", echo=False)
+Base.metadata.drop_all(engine)
+Base.metadata.create_all(engine)
+
+with Session(engine) as session:
+    user_repo = UserRepository(session)
+
+    print(user_repo.create_user('Alice', 25).id)
+    print(user_repo.delete(1))
+    print(user_repo.get_by_id(1))===========конец demo/repository_demo.py==========
+============demo/sqlalchemy_async_demo.py========
+import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import text
+
+async def main():
+    # Обрати внимание на sqlite+aiosqlite — это указание использовать асинхронный диалект
+    engine = create_async_engine("sqlite+aiosqlite:///async_demo.db", echo=True)
+
+    async with AsyncSession(engine) as session:
+        result = await session.execute(text("SELECT 1 + 1"))
+        print(result.scalar())
+
+asyncio.run(main())===========конец demo/sqlalchemy_async_demo.py==========
+============demo/sqlalchemy_demo.py========
+from sqlalchemy import create_engine, text
+
+engine = create_engine('sqlite:///db.sqlite3', echo=True)
+
+with engine.connect() as conn:
+    result = conn.execute(text('SELECT 1 + 1'))
+    print(result.scalar())
+===========конец demo/sqlalchemy_demo.py==========
+============demo/sqlalchemy_model_demo.py========
+from sqlalchemy import String, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__  = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    age: Mapped[int]
+    posts: Mapped[list["Post"]] = relationship(back_populates="user")
+
+class Post(Base):
+    __tablename__ = "posts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship(back_populates="posts")
+===========конец demo/sqlalchemy_model_demo.py==========
+============demo/sqlalchemy_relationship_demo.py========
+from sqlalchemy import create_engine, String, ForeignKey, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session, joinedload
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__  = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    age: Mapped[int]
+    posts: Mapped[list["Post"]] = relationship(back_populates="user")
+
+class Post(Base):
+    __tablename__ = "posts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship(back_populates="posts")
+engine = create_engine("sqlite:///demo.db", echo=True)
+
+Base.metadata.drop_all(engine)
+Base.metadata.create_all(engine)
+
+data_user = [
+    ("Alice", 30),
+    ("Bob", 25)
+    ]
+with Session(engine) as session:
+    for name, age in data_user:
+        user = User(name=name, age=age)
+        session.add(user)
+    session.commit()
+data_post = [
+    ("Post 1", 1),
+    ("Post 2", 2),
+    ("Post 3", 1),
+    ("Post 4", 2),
+    ("Post 5", 1)
+]
+with Session(engine) as session:
+    for title, user_id in data_post:
+        post = Post(title=title, user_id=user_id)
+        session.add(post)
+    session.commit()
+
+with Session(engine) as session:
+    stmt = select(User).where(User.id == 1)
+    user = session.execute(stmt).scalar_one()
+    for post in user.posts:
+        print(user.name, post.title)
+
+with Session(engine) as session:
+    stmt = select(Post).where(Post.id == 1)
+    post = session.execute(stmt).scalar_one()
+    print(post.user.name)
+
+with Session(engine) as session:
+    stmt = select(User).options(joinedload(User.posts))
+    users = session.execute(stmt).unique().scalars().all()
+    for user in users:
+        for post in user.posts:
+            print(user.name, post.title)
+===========конец demo/sqlalchemy_relationship_demo.py==========
+============demo/sqlalchemy_session_demo.py========
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
+
+engine = create_engine('sqlite:///demo.db', echo=False)
+
+with Session(engine) as session:
+    result = session.execute(text('select 1'))
+    print(result.scalar())
+===========конец demo/sqlalchemy_session_demo.py==========

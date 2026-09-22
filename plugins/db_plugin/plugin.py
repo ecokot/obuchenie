@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from .repository import UserRepository
 
 @dataclass
 class DBConfig:
@@ -21,7 +22,10 @@ class DBPlugin:
         self.app = app
         self.engine = create_engine(self.config.connection_string, echo=self.config.echo)
         sm = sessionmaker(bind=self.engine)
+        user_repository = UserRepository(sm)
         app.register_extension('db_session_factory', sm)
+        app.register_extension('user_repository', user_repository)
+
 
     def startup(self):
         if self.config.create_tables:

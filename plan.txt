@@ -94,7 +94,7 @@
 + extensions
 + конфигурация плагинов
 + БД
-Repository
++ Repository
 Web plugin
 другие плагины
 + взаимодействие плагинов с ядром
