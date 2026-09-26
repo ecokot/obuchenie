@@ -120,6 +120,27 @@ plugin_manager = PluginManager(app)
 app.set_plugin_manager(plugin_manager)
 plugin_manager.load_plugins()
 ===========конец main.py==========
+============main.py========
+from app.core import App, Config
+from app.core.plugins import PluginManager
+from dotenv import load_dotenv
+import logging
+import os
+
+load_dotenv()
+config = Config(app_name=os.getenv("APP_NAME", "MiniPlatform"), debug=os.getenv("DEBUG", "False").lower() == "true")
+
+if config.debug:
+    logging.basicConfig(level=logging.DEBUG, format="%(levelname)s - %(name)s - %(message)s")
+else:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(name)s - %(message)s")
+
+
+app = App(config)
+plugin_manager = PluginManager(app)
+app.set_plugin_manager(plugin_manager)
+plugin_manager.load_plugins()
+===========конец main.py==========
 ============requirements.txt========
 python-dotenv>=1.2.3
 SQLAlchemy~=2.0.52
@@ -129,6 +150,17 @@ aiosqlite>=0.20.0
 uvicorn>=0.30.0
 pytest>=8.0.0
 greenlet>=3.0.0
+===========конец requirements.txt==========
+============requirements.txt========
+python-dotenv>=1.2.3
+SQLAlchemy~=2.0.52
+fastapi>=0.115.0
+pydantic>=2.0.0
+aiosqlite>=0.20.0
+uvicorn>=0.30.0
+pytest>=8.0.0
+greenlet>=3.0.0
+bcrypt>=5.0.0
 ===========конец requirements.txt==========
 ============plugins/__init__.py========
 
@@ -146,6 +178,16 @@ class AuthPlugin:
     def register(self, app: App) -> None:
         logger.info(f"AuthPlugin подключен в {app.config.app_name}")
 ===========конец plugins/auth/plugin.py==========
+============plugins/auth/password.py========
+import bcrypt
+
+def hash_password(password: str) -> str:
+    salt = bcrypt.gensalt(rounds=12)
+    hashed_bytes = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_bytes.decode('utf-8')
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))===========конец plugins/auth/password.py==========
 ============plugins/db_plugin/__init__.py========
 
 ===========конец plugins/db_plugin/__init__.py==========
@@ -189,6 +231,45 @@ class DBPlugin:
         self.engine = create_engine(self.config.connection_string, echo=self.config.echo)
         sm = sessionmaker(bind=self.engine)
         app.register_extension('db_session_factory', sm)
+
+    def startup(self):
+        if self.config.create_tables:
+            from .models import Base
+            Base.metadata.create_all(self.engine)
+
+    def shutdown(self):
+        if self.engine is not None:
+            self.engine.dispose()
+===========конец plugins/db_plugin/plugin.py==========
+============plugins/db_plugin/plugin.py========
+from dataclasses import dataclass
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from .repository import UserRepository
+
+@dataclass
+class DBConfig:
+    connection_string: str
+    create_tables: bool = False
+    echo: bool = False
+
+
+class DBPlugin:
+    def __init__(self, config: DBConfig):
+        self.config = config
+        self.app = None
+        self.engine = None
+
+    def register(self, app):
+        if self.app is not None:
+            raise RuntimeError("Plugin is already registered with an app")
+        self.app = app
+        self.engine = create_engine(self.config.connection_string, echo=self.config.echo)
+        sm = sessionmaker(bind=self.engine)
+        user_repository = UserRepository(sm)
+        app.register_extension('db_session_factory', sm)
+        app.register_extension('user_repository', user_repository)
+
 
     def startup(self):
         if self.config.create_tables:
